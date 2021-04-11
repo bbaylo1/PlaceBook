@@ -1,7 +1,13 @@
 package com.brandonbaylosis.placebook
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -13,6 +19,7 @@ import com.google.android.gms.maps.model.MarkerOptions
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,6 +28,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
                 .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+        setupLocationClient()
     }
 
     /**
@@ -39,5 +47,51 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val sydney = LatLng(-34.0, 151.0)
         mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
         mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+    }
+
+    private fun setupLocationClient() {
+        fusedLocationClient =
+            LocationServices.getFusedLocationProviderClient(this)
+    }
+
+    private fun requestLocationPermissions() {
+        ActivityCompat.requestPermissions(this,
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+            REQUEST_LOCATION)
+    }
+
+    companion object {
+        private const val REQUEST_LOCATION = 1
+        private const val TAG = "MapsActivity"
+    }
+
+    private fun getCurrentLocation() {
+        // 1
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // 2
+            requestLocationPermissions()
+        } else {
+            // 3
+            fusedLocationClient.lastLocation.addOnCompleteListener {
+                val location = it.result
+                if (location != null) {
+                    // 4
+                    val latLng = LatLng(location.latitude,
+                        location.longitude)
+                    // 5
+                    map.addMarker(MarkerOptions().position(latLng)
+                        .title("You are here!"))
+                    // 6
+                    val update = CameraUpdateFactory.newLatLngZoom(latLng,
+                        16.0f)
+                    // 7
+                    map.moveCamera(update)
+                } else {
+                    // 8
+                    Log.e(TAG, "No location found")
+                }
+            }
+        }
     }
 }
