@@ -24,7 +24,7 @@ interface BookmarkDao {
     // 5  Updates a single bookmark in the database via the passed in bookmark argument
     @Update(onConflict = REPLACE)
     fun updateBookmark(bookmark: Bookmark)
-    // 6 Deletes existing bookmark based on the passed in bookmaark
+    // 6 Deletes existing bookmark based on the passed in bookmark
     @Delete
     fun deleteBookmark(bookmark: Bookmark)
 }

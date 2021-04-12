@@ -78,6 +78,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         placesClient = Places.createClient(this);
     }
 
+    // Uses fused location API
     private fun setupLocationClient() {
         fusedLocationClient =
             LocationServices.getFusedLocationProviderClient(this)
@@ -95,24 +96,24 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun getCurrentLocation() {
-        // 1
+        // 1 Checks permissions
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // 2
+            // 2 Calls if no permissions granted
             requestLocationPermissions()
         } else {
             // Displays the blue dot that designates the user's location
             map.isMyLocationEnabled = true
 
-            // 3
+            // 3 lastLocation runs in the background to fetch location
             fusedLocationClient.lastLocation.addOnCompleteListener {
                 val location = it.result
+                // Creates LatLng object from location if not null
                 if (location != null) {
-                    // 4
                     val latLng = LatLng(location.latitude, location.longitude)
-                    // 6
+                    // CameraUpdate object that specifies how map camera's updated
                     val update = CameraUpdateFactory.newLatLngZoom(latLng, 16.0f)
-                    // 7
+                    // Calls moveCamera to update with CameraUpdate object
                     map.moveCamera(update)
                 } else {
                     // 8
@@ -126,7 +127,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         requestCode: Int,
         permissions: Array<String>,
         grantResults: IntArray) {
+        // Checks if results match
         if (requestCode == REQUEST_LOCATION) {
+            // Checks if first item in the array contains PERMISSION_GRANTED
+                // and gets current location if correct
             if (grantResults.size == 1 && grantResults[0] ==
                 PackageManager.PERMISSION_GRANTED) {
                 getCurrentLocation()
@@ -136,6 +140,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    // References refactored method to get details of points of interest
     private fun displayPoi(pointOfInterest: PointOfInterest) {
         displayPoiGetPlaceStep(pointOfInterest)
     }
@@ -162,7 +167,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     val place = response.place
                     displayPoiGetPhotoStep(place)
                 }.addOnFailureListener { exception ->
-                    // 6 Failure listener, catching exceptions, mostly API errors
+                    // 6 Catches exceptions, mostly API errors
                     if (exception is ApiException) {
                         val statusCode = exception.statusCode
                         // Log status code and message
@@ -192,13 +197,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 .setMaxHeight(resources.getDimensionPixelSize(
                         R.dimen.default_image_height))
                 .build()
-        // 4
+        // 4 Calls fetchPhoto passing in photoRequest, letting callbacks handle the response
         placesClient.fetchPhoto(photoRequest)
+                // If successful, assign photo to bitmap
                 .addOnSuccessListener { fetchPhotoResponse ->
                     val bitmap = fetchPhotoResponse.bitmap
                     // Pass along the place object and the bitmap image
                     displayPoiDisplayStep(place, bitmap)
                 }.addOnFailureListener { exception ->
+                // Logs error if unsuccessful
                     if (exception is ApiException) {
                         val statusCode = exception.statusCode
                         Log.e(TAG,
@@ -211,7 +218,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun displayPoiDisplayStep(place: Place, photo: Bitmap?)
     {
-        // Adds marker
+        // Adds red marker
         val marker = map.addMarker(MarkerOptions()
                 .position(place.latLng as LatLng)
                 .title(place.name)
@@ -221,11 +228,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         marker?.tag = PlaceInfo(place, photo)
     }
 
-    // Handles tap on a place info window
+    // Handles an action when the user taps a place Info window
+    // Saves bookmark if it hasn't been saved before,
+    // or starts bookmark details Activity if it has already been saved
     private fun handleInfoWindowClick(marker: Marker) {
         val placeInfo = (marker.tag as PlaceInfo)
         if (placeInfo.place != null) {
-            // Add the place to repository
+            // Add the tapped place to repository
             GlobalScope.launch {
                 mapsViewModel.addBookmarkFromPlace(placeInfo.place, placeInfo.image)
             }
@@ -256,7 +265,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun createBookmarkMarkerObserver() {
-        // 1 Retrieves a LiveData object
+        // Retrieves a LiveData object
         mapsViewModel.getBookmarkMarkerViews()?.observe(
             // Calls observe method to follow the lifecycle of the current activity
             // as well as to be notified when the underlying data changes on the LiveData object

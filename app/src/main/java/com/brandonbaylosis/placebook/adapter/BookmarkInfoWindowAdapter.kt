@@ -10,24 +10,24 @@ import com.brandonbaylosis.placebook.ui.MapsActivity
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.Marker
 
-// 1 Take single parameter representing hosting activity
+//  Take single parameter representing hosting activity
 // This class implements the GoogleMap.InfoWindowAdapter
 class BookmarkInfoWindowAdapter(context: Activity) :
         GoogleMap.InfoWindowAdapter {
-    // 2 Hold contents view
+    //  Hold contents view
     private val contents: View
-    // 3 When adapter is instantiated, content_bookmark_info.xml is inflated and saved to contents
+    // When adapter is instantiated, content_bookmark_info.xml is inflated and saved to contents
     init {
         contents = context.layoutInflater.inflate(
                 R.layout.content_bookmark_info, null)
     }
-    // 4 Override and return null to indicate the entire info window won't be replaced
+    // Override and return null to indicate the entire info window won't be replaced
     override fun getInfoWindow(marker: Marker): View? {
         // This function is required, but can return null if
         // not replacing the entire info window
         return null
     }
-    // 5 Fill in titleView and phoneView widgets on Layout
+    // Fill in titleView and phoneView widgets on Layout
     // Casts marker.tag to PlaceInfo object and access image property to set it
     // as the imageView bitmap
     override fun getInfoContents(marker: Marker): View? {
