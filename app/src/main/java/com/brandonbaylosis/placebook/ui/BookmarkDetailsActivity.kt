@@ -6,8 +6,12 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
@@ -16,6 +20,7 @@ import com.brandonbaylosis.placebook.util.ImageUtils
 import com.brandonbaylosis.placebook.viewmodel.BookmarkDetailsViewModel
 import kotlinx.android.synthetic.main.activity_bookmark_details.*
 import java.io.File
+import java.net.URLEncoder
 
 
 class BookmarkDetailsActivity : AppCompatActivity(),
@@ -32,6 +37,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
         setupToolbar()
         // Processes Intent data passed in from maps Activity
         getIntentData()
+        setupFab()
     }
 
     private fun setupToolbar() {
@@ -82,6 +88,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
                     // Populate fields from bookmark
                     populateFields()
                     populateImageView()
+                    populateCategoryList()
                 }
             })
     }
@@ -107,6 +114,8 @@ class BookmarkDetailsActivity : AppCompatActivity(),
             bookmarkView.notes = editTextNotes.text.toString()
             bookmarkView.address = editTextAddress.text.toString()
             bookmarkView.phone = editTextPhone.text.toString()
+            // Grabs currently selected category and assigns it to bookmarkView category
+            bookmarkView.category = spinnerCategory.selectedItem as String
             bookmarkDetailsViewModel.updateBookmark(bookmarkView)
         }
         finish()
@@ -119,6 +128,11 @@ class BookmarkDetailsActivity : AppCompatActivity(),
             R.id.action_save -> {
                 // Calls saveChanges if it does match
                 saveChanges()
+                return true
+            }
+            // Called when delete icon is tapped
+            R.id.action_delete -> {
+                deleteBookmark()
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
@@ -241,6 +255,113 @@ class BookmarkDetailsActivity : AppCompatActivity(),
                 resources.getDimensionPixelSize(
                         R.dimen.default_image_height),
                 this)
+    }
+
+    private fun populateCategoryList() {
+        // 1 returns method if bookmarkDetailsView is null
+        val bookmarkView = bookmarkDetailsView ?: return
+        // 2 Retrieve category icon resourceId from view model
+        val resourceId =
+                bookmarkDetailsViewModel.getCategoryResourceId(
+                        bookmarkView.category)
+        // 3 if not null, update imageViewCategory to category icon
+        resourceId?.let { imageViewCategory.setImageResource(it) }
+        // 4 Retrieves list of categories from view model
+        val categories = bookmarkDetailsViewModel.getCategories()
+        // 5 Populates a Spinner control
+        // Creates ArrayAdapter built from list of category names
+        val adapter = ArrayAdapter(this,
+                android.R.layout.simple_spinner_item, categories)
+        adapter.setDropDownViewResource( // Assign Adapter to standard built-in Layout resource
+                android.R.layout.simple_spinner_dropdown_item)
+        // 6 Assign the Adapter to spinnerCategory control
+        spinnerCategory.adapter = adapter
+        // 7 Updates spinnerCategory to reflect current category section
+        val placeCategory = bookmarkView.category
+        spinnerCategory.setSelection(
+                adapter.getPosition(placeCategory))
+
+        // Sets up listener to respond when user changes category selection
+        // 1 Eliminates initial call by Android to onItemSelect
+        spinnerCategory.post {
+            // 2 Assign spinnerCategory onItemSelectedProperty to an instance of
+            // onItemSelectedListener class that implements onItemsSelected and onNothingSelected
+            spinnerCategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view:
+                View, position: Int, id: Long) {
+                    // 3 Call onItemSelected when user selects new category
+                    val category = parent.getItemAtPosition(position) as String
+                    // Determines new category by current spinner selection position
+                    // then updates imageViewCategory to reflect the new category
+                    val resourceId =
+                            bookmarkDetailsViewModel.getCategoryResourceId(category)
+                    resourceId?.let {
+                        imageViewCategory.setImageResource(it) }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>) {
+                    // NOTE: This method is required but not used.
+                }
+            }
+        }
+    }
+
+    // Displays AlertDialog to prompt user if they want to delete bookmark
+    private fun deleteBookmark()
+    {
+        val bookmarkView = bookmarkDetailsView ?: return
+        AlertDialog.Builder(this)
+                .setMessage("Delete?")
+                // Deletes bookmark and activity closes using finish()
+                .setPositiveButton("Ok") { _, _ ->
+                    bookmarkDetailsViewModel.deleteBookmark(bookmarkView)
+                    finish()
+                }
+                .setNegativeButton("Cancel", null)
+                .create().show()
+    }
+
+    private fun sharePlace() {
+        // 1 Early return if bookmarkView null
+        val bookmarkView = bookmarkDetailsView ?: return
+        // 2 Triggers driving directions to bookmarked place
+        // If the user creates an ad-hoc bookmark, then the directions go directly to the latitude/longitude of the bookmark.
+        //  If the bookmark is created from a place, then the directions go to the place based on its ID.
+        var mapUrl = ""
+        if (bookmarkView.placeId == null) {
+            // 3 A string with the latitude/longitude separated by a comma is constructed. It’s
+            //encoded to allow the command to work in the URL.
+            val location = URLEncoder.encode("${bookmarkView.latitude},"
+                    + "${bookmarkView.longitude}", "utf-8")
+            mapUrl = "https://www.google.com/maps/dir/?api=1" +
+                    "&destination=$location"
+        } else {
+            // 4 Destination contains the place name if place ID is available
+                // mapUrl constructed using name string and place ID
+            val name = URLEncoder.encode(bookmarkView.name, "utf-8")
+            mapUrl = "https://www.google.com/maps/dir/?api=1" +
+                    "&destination=$name&destination_place_id=" +
+                    "${bookmarkView.placeId}"
+        }
+        // 5 Create sharing Activity Intent and set action to ACTION_SEND
+        // meaning this intent is meant to share its data with another
+        // application installed in the device
+        val sendIntent = Intent()
+        sendIntent.action = Intent.ACTION_SEND
+        // 6 Multiple types of extra data can be added to the Intent. The app
+        // that receives it can choose which data items to use and ignore
+        sendIntent.putExtra(Intent.EXTRA_TEXT,
+                "Check out ${bookmarkView.name} at:\n$mapUrl")
+        sendIntent.putExtra(Intent.EXTRA_SUBJECT,
+                "Sharing ${bookmarkView.name}")
+        // 7 Intent type is set to a MIME type of “text/plain”. This instructs Android that
+        // the app intends to share plain text data
+        sendIntent.type = "text/plain"
+        // 8 Starts the activity
+        startActivity(sendIntent)
+    }
+
+    private fun setupFab() {
+        fab.setOnClickListener { sharePlace() }
     }
 
     // Defines request code to use when processing the camera capture Intent

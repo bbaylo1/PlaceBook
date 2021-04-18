@@ -18,11 +18,15 @@ class BookmarkDetailsViewModel(application: Application) :
     private var bookmarkDetailsView: LiveData<BookmarkDetailsView>? = null
 
     data class BookmarkDetailsView(
-        var id: Long? = null,
-        var name: String = "",
-        var phone: String = "",
-        var address: String = "",
-        var notes: String = ""
+            var id: Long? = null,
+            var name: String = "",
+            var phone: String = "",
+            var address: String = "",
+            var notes: String = "",
+            var category: String = "",
+            var longitude: Double = 0.0,
+            var latitude: Double = 0.0,
+            var placeId: String? = null
 
     ) {
         fun getImage(context: Context): Bitmap? {
@@ -45,24 +49,29 @@ class BookmarkDetailsViewModel(application: Application) :
     // Converts a Bookmark model to a BookmarkDetailsView model
     private fun bookmarkToBookmarkView(bookmark: Bookmark): BookmarkDetailsView {
         return BookmarkDetailsView(
-            bookmark.id,
-            bookmark.name,
-            bookmark.phone,
-            bookmark.address,
-            bookmark.notes
+                bookmark.id,
+                bookmark.name,
+                bookmark.phone,
+                bookmark.address,
+                bookmark.notes,
+                bookmark.category,
+                bookmark.longitude,
+                bookmark.latitude,
+                bookmark.placeId
         )
     }
 
     // Get live Bookmark from BookmarkRepo and then transform it to
     // the live BookmarkDetailsView
-    private fun mapBookmarkToBookmarkView(bookmarkId: Long) {
+    fun mapBookmarkToBookmarkView(bookmarkId: Long) {
         val bookmark = bookmarkRepo.getLiveBookmark(bookmarkId)
         bookmarkDetailsView = Transformations.map(bookmark)
         { repoBookmark ->
-            bookmarkToBookmarkView(repoBookmark)
+            repoBookmark?.let { repoBookmark ->
+                bookmarkToBookmarkView(repoBookmark)
+            }
         }
     }
-
     fun getBookmark(bookmarkId: Long):
             LiveData<BookmarkDetailsView>? {
         if (bookmarkDetailsView == null) {
@@ -82,6 +91,7 @@ class BookmarkDetailsViewModel(application: Application) :
             bookmark.phone = bookmarkView.phone
             bookmark.address = bookmarkView.address
             bookmark.notes = bookmarkView.notes
+            bookmark.category = bookmarkView.category
         }
         return bookmark
     }
@@ -98,5 +108,28 @@ class BookmarkDetailsViewModel(application: Application) :
         }
     }
 
+    // Pass-through to a similar method in bookmark repo to return
+    // category resource ID from a category name
+    fun getCategoryResourceId(category: String): Int? {
+        return bookmarkRepo.getCategoryResourceId(category)
+    }
+
+    // Another pass-through method, returns categories list from bookmark repo
+    fun getCategories(): List<String> {
+        return bookmarkRepo.categories
+    }
+
+    // Takes in  BookmarkDetailsView and loads the bookmark from the
+    // repo. If bookmark is found, it calls deleteBookmark() on the repo.
+    fun deleteBookmark(bookmarkDetailsView: BookmarkDetailsView) {
+        GlobalScope.launch {
+            val bookmark = bookmarkDetailsView.id?.let {
+                bookmarkRepo.getBookmark(it)
+            }
+            bookmark?.let {
+                bookmarkRepo.deleteBookmark(it)
+            }
+        }
+    }
 
 }

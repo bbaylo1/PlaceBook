@@ -1,6 +1,7 @@
 package com.brandonbaylosis.placebook.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -8,6 +9,8 @@ import android.location.Location
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
+import android.widget.ProgressBar
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.app.ActivityCompat
@@ -17,6 +20,8 @@ import com.brandonbaylosis.placebook.R
 import com.brandonbaylosis.placebook.adapter.BookmarkInfoWindowAdapter
 import com.brandonbaylosis.placebook.adapter.BookmarkListAdapter
 import com.brandonbaylosis.placebook.viewmodel.MapsViewModel
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException
+import com.google.android.gms.common.GooglePlayServicesRepairableException
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.location.*
 
@@ -27,9 +32,12 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import kotlinx.android.synthetic.main.activity_maps.*
 import kotlinx.android.synthetic.main.drawer_view_maps.*
 import kotlinx.android.synthetic.main.main_view_maps.*
@@ -83,6 +91,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         map.setOnInfoWindowClickListener {
             handleInfoWindowClick(it)
         }
+        fab.setOnClickListener {
+            searchAtCurrentLocation()
+        }
+
+        map.setOnMapLongClickListener { latLng ->
+            newBookmark(latLng)
+        }
     }
 
     // Creates PlacesClient
@@ -111,6 +126,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_BOOKMARK_ID = "com.brandonbaylosis.placebook.EXTRABOOKMARK_ID"
         private const val REQUEST_LOCATION = 1
         private const val TAG = "MapsActivity"
+        private const val AUTOCOMPLETE_REQUEST_CODE = 2
+
     }
 
     private fun getCurrentLocation() {
@@ -160,6 +177,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // References refactored method to get details of points of interest
     private fun displayPoi(pointOfInterest: PointOfInterest) {
+        showProgress() // Displays progress bar when tapped
         displayPoiGetPlaceStep(pointOfInterest)
     }
 
@@ -172,7 +190,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 Place.Field.PHONE_NUMBER,
                 Place.Field.PHOTO_METADATAS,
                 Place.Field.ADDRESS,
-                Place.Field.LAT_LNG)
+                Place.Field.LAT_LNG,
+                Place.Field.TYPES)
         // 3 Creates a fetch request via familiar builder pattern
         val request = FetchPlaceRequest
                 .builder(placeId, placeFields)
@@ -193,6 +212,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 "Place not found: " +
                                         exception.message + ", " +
                                         "statusCode: " + statusCode)
+                        hideProgress()
                     }
                 }
     }
@@ -231,11 +251,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                         exception.message + ", " +
                                         "statusCode: " + statusCode)
                     }
+                    hideProgress()
                 }
     }
 
     private fun displayPoiDisplayStep(place: Place, photo: Bitmap?)
     {
+        hideProgress()
         // Adds red marker
         val marker = map.addMarker(MarkerOptions()
                 .position(place.latLng as LatLng)
@@ -283,8 +305,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 .position(bookmark.location)
                 .title(bookmark.name)
                 .snippet(bookmark.phone)
-                .icon(BitmapDescriptorFactory.defaultMarker(
-                        BitmapDescriptorFactory.HUE_AZURE))
+                .icon(bookmark.categoryResourceId?.let {
+                    BitmapDescriptorFactory.fromResource(it)
+                })
                 .alpha(0.8f))
         marker.tag = bookmark
         // Adds new entry to markers when a new marker is added to the map
@@ -371,6 +394,106 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Called to zoom the mapp to the bookmark
         updateMapToLocation(location)
     }
+
+    private fun searchAtCurrentLocation() {
+        // 1 Define fields
+        val placeFields = listOf(
+                Place.Field.ID,
+                Place.Field.NAME,
+                Place.Field.PHONE_NUMBER,
+                Place.Field.PHOTO_METADATAS,
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS,
+                Place.Field.TYPES)
+        // 2 Computes bounds of currently visible region of the map
+        val bounds =
+                RectangularBounds.newInstance(map.projection.visibleRegion.latLngBounds)
+        try {
+            // 3 Autocomplete provides IntentBuilder method to build up the Intent
+            // Passes AutocompleteActivityMode.OVERLAY to indicate that the
+            // search widget can overlay current activity. Other option
+                // is .FULLSCREEN which causes search interface to replace entire screen
+            val intent = Autocomplete.IntentBuilder(
+                    AutocompleteActivityMode.OVERLAY, placeFields)
+                    // Pass map bounds to setBoundBias
+                    .setLocationBias(bounds)
+                    .build(this)
+            // 4 Start Activity, passing request code of AUTOCOMPLETE_REQUEST_CODE
+            // Results are identified by this search code
+            startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE)
+        } catch (e: GooglePlayServicesRepairableException) {
+            //TODO: Handle exception
+        } catch (e: GooglePlayServicesNotAvailableException) {
+            // //TODO: Handle exception
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int,
+                                  data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        // 1 Check requestCode to make sure it matches AUTOCOMPLETE_REQUEST_CODE passed
+        // into startActivityForResult
+        when (requestCode) {
+            AUTOCOMPLETE_REQUEST_CODE ->
+                // 2 If resultCode finds a place, and data is not null, continue
+                if (resultCode == Activity.RESULT_OK && data != null) {
+                    // 3 getPlaceFromIntent takes data and returns populated Place object
+                    val place = Autocomplete.getPlaceFromIntent(data)
+                    // 4
+                    val location = Location("")
+                    // Converts place latLng to a location
+                    location.latitude = place.latLng?.latitude ?: 0.0
+                    location.longitude = place.latLng?.longitude ?: 0.0
+                    // Passes to existing updateMapToLocation method, causing
+                    // the map to zoom to the place
+                    updateMapToLocation(location)
+                    // Displays progress bar after searching for a place but before
+                    // place photo is loaded
+                    showProgress()
+
+                    // 5 Instead of processing the data in several steps, it can start at the
+                    // displayPoiGetPhotoMetaDataStep() and pass it the found place. This
+                    // loads the place photo and displays the place Info window.
+                    displayPoiGetPhotoStep(place)
+                }
+        }
+    }
+
+    // Creates a new bookmark from a location, then starts the bookmark details Activity
+    // to allow editing of new bookmark
+    private fun newBookmark(latLng: LatLng) {
+        GlobalScope.launch {
+            val bookmarkId = mapsViewModel.addBookmark(latLng)
+            bookmarkId?.let {
+                startBookmarkDetails(it)
+            }
+        }
+    }
+
+    // Sets a flag on the main window to prevent user touches
+    private fun disableUserInteraction() {
+        window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+
+    // Clears the flag set
+    private fun enableUserInteraction() {
+        window.clearFlags(
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+
+    //Makes progress bar visible and disables user interaction
+    private fun showProgress() {
+        progressBar.visibility = ProgressBar.VISIBLE
+        disableUserInteraction()
+    }
+
+    // Hides progress bar and enables user interaction
+    private fun hideProgress() {
+        progressBar.visibility = ProgressBar.GONE
+        enableUserInteraction()
+    }
+
     // Class that holds a Place and a Bitmap
     class PlaceInfo(val place: Place? = null, val image: Bitmap? = null)
 

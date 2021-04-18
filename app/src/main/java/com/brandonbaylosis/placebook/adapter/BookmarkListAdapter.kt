@@ -63,8 +63,11 @@ class BookmarkListAdapter(
         // and ViewHolder items are populated from bookmarkViewData
         holder.itemView.tag = bookmarkViewData
         holder.nameTextView.text = bookmarkViewData.name
-        holder.categoryImageView.setImageResource(
-                R.drawable.ic_other)
+        // Checks to see if categoryResourcesId is set, if so it sets image
+        // resource to categoryResourceID
+        bookmarkViewData.categoryResourceId?.let {
+            holder.categoryImageView.setImageResource(it)
+        }
     }
     // 8 getItemCount's overriden to return number of items in bookmarkData list
     override fun getItemCount(): Int {
