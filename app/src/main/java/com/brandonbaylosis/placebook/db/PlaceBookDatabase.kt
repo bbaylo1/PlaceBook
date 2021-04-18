@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.brandonbaylosis.placebook.model.Bookmark
 
 // 1 Identifies Database class to Room
-@Database(entities = arrayOf(Bookmark::class), version = 1)
+@Database(entities = arrayOf(Bookmark::class), version = 2)
 abstract class PlaceBookDatabase : RoomDatabase() {
     // 2 Returns a DAO interface
     abstract fun bookmarkDao(): BookmarkDao
@@ -18,12 +18,13 @@ abstract class PlaceBookDatabase : RoomDatabase() {
         // 5 Define getInstance() to take in a Context and return the single PlaceBookDatabase instance
         fun getInstance(context: Context): PlaceBookDatabase {
             if (instance == null) {
-                // 6 If it's the first time getInstance is called,
-                    // , a single PlaceBookDatabase instance is made
-                instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    PlaceBookDatabase::class.java, // Creates a room database based on the abstract class
-                    "PlaceBook").build()
+                // 6 Adds fallbackToDestructiveMigration() to call the builder
+                    // and tells Room to create a new empty database
+                        // if it can’t find any Migrations.
+                instance = Room.databaseBuilder(context.applicationContext,
+                    PlaceBookDatabase::class.java, "PlaceBook")
+                    .fallbackToDestructiveMigration()
+                    .build()
             }
             // 7 returns the instance
             return instance as PlaceBookDatabase

@@ -28,4 +28,19 @@ class BookmarkRepo(context: Context) {
             // Return the results to the caller
             return bookmarkDao.loadAll()
         }
+    // Returns live bookmark from bookmark DAO
+    fun getLiveBookmark(bookmarkId: Long): LiveData<Bookmark> {
+        val bookmark = bookmarkDao.loadLiveBookmark(bookmarkId)
+        return bookmark
+    }
+
+    // Takes in a bookmark and saves it using the boomark DAO
+    fun updateBookmark(bookmark: Bookmark) {
+        bookmarkDao.updateBookmark(bookmark)
+    }
+    // Takes in bookmark ID and uses the bookmark DAO to load
+    // the corresponding bookmark
+    fun getBookmark(bookmarkId: Long): Bookmark {
+        return bookmarkDao.loadBookmark(bookmarkId)
+    }
 }

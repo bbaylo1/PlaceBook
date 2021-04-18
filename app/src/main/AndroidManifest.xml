@@ -30,6 +30,13 @@
             android:value="@string/google_maps_key" />
 
         <activity
+            android:name=
+                "com.brandonbaylosis.placebook.ui.BookmarkDetailsActivity"
+            android:label="Bookmark"
+            android:theme="@style/Theme.PlaceBook.NoActionBar"
+            android:windowSoftInputMode="stateHidden">
+        </activity>
+        <activity
             android:name=".ui.MapsActivity"
             android:label="@string/title_activity_maps">
             <intent-filter>

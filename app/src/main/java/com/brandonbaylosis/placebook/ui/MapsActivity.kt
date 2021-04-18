@@ -1,6 +1,7 @@
 package com.brandonbaylosis.placebook.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import androidx.appcompat.app.AppCompatActivity
@@ -90,7 +91,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             REQUEST_LOCATION)
     }
 
+
+
     companion object {
+        // Defines a key for storing the bookmark ID in the intent extras
+        const val EXTRA_BOOKMARK_ID = "com.brandonbaylosis.placebook.EXTRABOOKMARK_ID"
         private const val REQUEST_LOCATION = 1
         private const val TAG = "MapsActivity"
     }
@@ -234,16 +239,28 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     // Handles an action when the user taps a place Info window
     // Saves bookmark if it hasn't been saved before,
     // or starts bookmark details Activity if it has already been saved
+    // BE SURE TO REPLACE THE COMMENTS HERE!!
     private fun handleInfoWindowClick(marker: Marker) {
-        val placeInfo = (marker.tag as PlaceInfo)
-        if (placeInfo.place != null) {
-            // Add the tapped place to repository
-            GlobalScope.launch {
-                mapsViewModel.addBookmarkFromPlace(placeInfo.place, placeInfo.image)
+        when (marker.tag) {
+            is MapsActivity.PlaceInfo -> {
+                val placeInfo = (marker.tag as PlaceInfo)
+                if (placeInfo.place != null && placeInfo.image != null) {
+                    GlobalScope.launch {
+                        mapsViewModel.addBookmarkFromPlace(placeInfo.place,
+                            placeInfo.image)
+                    }
+                }
+                marker.remove();
+            }
+            is MapsViewModel.BookmarkMarkerView -> {
+                val bookmarkMarkerView = (marker.tag as
+                        MapsViewModel.BookmarkMarkerView)
+                marker.hideInfoWindow()
+                bookmarkMarkerView.id?.let {
+                    startBookmarkDetails(it)
+                }
             }
         }
-        // Removes marker from map
-        marker.remove()
     }
 
     // Adds a single blue marker to the map based on BookmarkMarkerView
@@ -283,6 +300,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     displayAllBookmarks(it)
                 }
             })
+    }
+
+    private fun startBookmarkDetails(bookmarkId: Long) {
+        val intent = Intent(this, BookmarkDetailsActivity::class.java)
+        // Adds bookmarkId as extra parameter on the Intent
+        intent.putExtra(EXTRA_BOOKMARK_ID, bookmarkId)
+        startActivity(intent)
     }
 
     // Class that holds a Place and a Bitmap
