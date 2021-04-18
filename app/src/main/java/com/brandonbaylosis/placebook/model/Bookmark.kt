@@ -1,7 +1,10 @@
 package com.brandonbaylosis.placebook.model
 
+import android.content.Context
+import android.graphics.Bitmap
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.brandonbaylosis.placebook.util.ImageUtils
 
 // 1 Designates this as a data base entry class to Room
 @Entity
@@ -16,4 +19,26 @@ data class Bookmark(
     var latitude: Double = 0.0,
     var longitude: Double = 0.0,
     var phone: String = ""
+
 )
+
+{
+    // 1 Provides public interface for saving an image for a Bookmark
+    fun setImage(image: Bitmap, context: Context) {
+        // 2 If bookmark has an id, image is saved to a file
+        // The filename incorporates the bookmark ID
+        id?.let {
+            ImageUtils.saveBitmapToFile(context, image, generateImageFilename(it))
+        }
+    }
+    // 3 generateImageFilename() is placed in a companion object so it's available at
+    // the class level, allowing another object to load an image without having to load
+    // the bookmark from the database
+    companion object {
+        fun generateImageFilename(id: Long): String {
+            // 4 generateImageFilename returns filename based on a Bookmark ID, using
+            // an algorithm that appends the bookmark ID to the word "bookmark".
+            return "bookmark$id.png"
+        }
+    }
+}

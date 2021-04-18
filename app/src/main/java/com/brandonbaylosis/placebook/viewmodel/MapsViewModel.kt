@@ -1,6 +1,7 @@
 package com.brandonbaylosis.placebook.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
@@ -8,6 +9,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.Transformations
 import com.brandonbaylosis.placebook.model.Bookmark
 import com.brandonbaylosis.placebook.repository.BookmarkRepo
+import com.brandonbaylosis.placebook.util.ImageUtils
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.Place
 
@@ -35,6 +37,8 @@ class MapsViewModel(application: Application) : AndroidViewModel(application) {
         bookmark.address = place.address.toString()
         // 5 Save the Bookmark to repository and print verification message
         val newId = bookmarkRepo.addBookmark(bookmark)
+        // Updates addBookmarkFromPlace() to call the new setImage() method if image is not null
+        image?.let { bookmark.setImage(it, getApplication()) }
         Log.i(TAG, "New bookmark $newId added to the database.")
     }
 
@@ -42,8 +46,10 @@ class MapsViewModel(application: Application) : AndroidViewModel(application) {
     private fun bookmarkToMarkerView(bookmark: Bookmark):
             MapsViewModel.BookmarkMarkerView {
         return MapsViewModel.BookmarkMarkerView(
-            bookmark.id,
-            LatLng(bookmark.latitude, bookmark.longitude))
+                bookmark.id,
+                LatLng(bookmark.latitude, bookmark.longitude),
+                bookmark.name,
+                bookmark.phone)
     }
 
     private fun mapBookmarksToMarkerView() {
@@ -70,8 +76,22 @@ class MapsViewModel(application: Application) : AndroidViewModel(application) {
         return bookmarks
     }
 
-    // Holds information needed by the View to plot a marker for a single bookmark
-    data class BookmarkMarkerView(
-        var id: Long? = null,
-        var location: LatLng = LatLng(0.0, 0.0))
+    data class BookmarkMarkerView(var id: Long? = null,
+                                  var location: LatLng = LatLng(0.0, 0.0),
+                                  var name: String = "",
+                                  var phone: String = "")
+    {
+        // Check to make sure BookmarkMarkerView has a valid ID
+        fun getImage(context: Context): Bitmap? {
+            id?.let{
+                // Then, calls generateImageFilename() and pass in the
+                // bookmark ID represented as id
+                // loadBitmapFromFile() is then called with the current context and Bookmark
+                // image filename, and it returns the resulting Bitmap to the caller.
+                return ImageUtils.loadBitmapFromFile(context,
+                        Bookmark.generateImageFilename(it))
+            }
+            return null
+        }
     }
+}
