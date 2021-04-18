@@ -11,7 +11,7 @@ import com.brandonbaylosis.placebook.model.Bookmark
 interface BookmarkDao {
     // 2 Define an sql statement to read all of the bookmarks from the database and
     // return them as List of Bookmarks
-    @Query("SELECT * FROM Bookmark")
+    @Query("SELECT * FROM Bookmark ORDER BY name")
     fun loadAll(): LiveData<List<Bookmark>>
     // 3 Returns a bookmark object
     @Query("SELECT * FROM Bookmark WHERE id = :bookmarkId")

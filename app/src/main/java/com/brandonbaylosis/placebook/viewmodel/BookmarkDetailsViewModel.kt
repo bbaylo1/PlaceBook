@@ -23,6 +23,7 @@ class BookmarkDetailsViewModel(application: Application) :
         var phone: String = "",
         var address: String = "",
         var notes: String = ""
+
     ) {
         fun getImage(context: Context): Bitmap? {
             id?.let {
@@ -30,6 +31,14 @@ class BookmarkDetailsViewModel(application: Application) :
                     Bookmark.generateImageFilename(it))
             }
             return null
+        }
+        // Takes in a Bitmap image and saves it to associated image file
+        // for current BookmarkView
+        fun setImage(context: Context, image: Bitmap) {
+            id?.let {
+                ImageUtils.saveBitmapToFile(context, image,
+                        Bookmark.generateImageFilename(it))
+            }
         }
     }
 
@@ -88,4 +97,6 @@ class BookmarkDetailsViewModel(application: Application) :
             bookmark?.let { bookmarkRepo.updateBookmark(it) }
         }
     }
+
+
 }

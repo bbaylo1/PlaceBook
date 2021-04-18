@@ -17,7 +17,7 @@ import com.google.android.libraries.places.api.model.Place
 // when creating BookmarkRepo
 class MapsViewModel(application: Application) : AndroidViewModel(application) {
     // Defines an object that wraps a list of BookmarkMarkerView objects
-    private var bookmarks: LiveData<List<BookmarkMarkerView>>? = null
+    private var bookmarks: LiveData<List<BookmarkView>>? = null
 
     private val TAG = "MapsViewModel"
     // 2 Create BookmarkRepo object and pass it in the application context
@@ -43,43 +43,43 @@ class MapsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Converts Bookmark object from repo into a BookmarkMarkerView object
-    private fun bookmarkToMarkerView(bookmark: Bookmark):
-            MapsViewModel.BookmarkMarkerView {
-        return MapsViewModel.BookmarkMarkerView(
+    private fun bookmarkToBookmarkView(bookmark: Bookmark):
+            MapsViewModel.BookmarkView {
+        return MapsViewModel.BookmarkView(
                 bookmark.id,
                 LatLng(bookmark.latitude, bookmark.longitude),
                 bookmark.name,
                 bookmark.phone)
     }
 
-    private fun mapBookmarksToMarkerView() {
+    private fun mapBookmarksToBookmarkView() {
         // 1 Uses Transformations class to dynamically map Bookmark objects into
         // BookmarkMarkerView objects as they get updated
         bookmarks = Transformations.map(bookmarkRepo.allBookmarks)
         { repoBookmarks ->
             // 2 Provides a list of Bookmarks returned from the bookmark repo
             repoBookmarks.map { bookmark ->
-                bookmarkToMarkerView(bookmark)
+                bookmarkToBookmarkView(bookmark)
                 // Stored in repoBookmarks variable
             }
         }
     }
 
     // Returns the LiveData object that'll be observed by MapsActivity
-    fun getBookmarkMarkerViews() :
-            LiveData<List<BookmarkMarkerView>>? {
+    fun getBookmarkViews() :
+            LiveData<List<BookmarkView>>? {
         // Bookmarks are null first call, if null, it calls
         // this function to set up the initial mapping
         if (bookmarks == null) {
-            mapBookmarksToMarkerView()
+            mapBookmarksToBookmarkView()
         }
         return bookmarks
     }
 
-    data class BookmarkMarkerView(var id: Long? = null,
-                                  var location: LatLng = LatLng(0.0, 0.0),
-                                  var name: String = "",
-                                  var phone: String = "")
+    data class BookmarkView(var id: Long? = null,
+                            var location: LatLng = LatLng(0.0, 0.0),
+                            var name: String = "",
+                            var phone: String = "")
     {
         // Check to make sure BookmarkMarkerView has a valid ID
         fun getImage(context: Context): Bitmap? {
