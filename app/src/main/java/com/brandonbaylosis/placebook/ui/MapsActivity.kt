@@ -76,7 +76,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         setupMapListeners()
-        createBookmarkMarkerObserver()
+        createBookmarkObserver()
         getCurrentLocation()
     }
 
@@ -274,7 +274,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     // Handles an action when the user taps a place Info window
     // Saves bookmark if it hasn't been saved before,
     // or starts bookmark details Activity if it has already been saved
-    // BE SURE TO REPLACE THE COMMENTS HERE!!
     private fun handleInfoWindowClick(marker: Marker) {
         when (marker.tag) {
             is MapsActivity.PlaceInfo -> {
@@ -324,7 +323,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun createBookmarkMarkerObserver() {
+    private fun createBookmarkObserver() {
         // Retrieves a LiveData object
         mapsViewModel.getBookmarkViews()?.observe(
             // Calls observe method to follow the lifecycle of the current activity
@@ -339,6 +338,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 // objects
                 it?.let {
                     displayAllBookmarks(it)
+                    // sets the new list of BookmarkView items on the recycler view adapter
+                    // whenever the bookmark data changes
                     bookmarkListAdapter.setBookmarkData(it)
                 }
             })

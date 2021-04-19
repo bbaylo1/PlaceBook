@@ -46,7 +46,7 @@ class MapsViewModel(application: Application) : AndroidViewModel(application) {
         Log.i(TAG, "New bookmark $newId added to the database.")
     }
 
-    // Converts Bookmark object from repo into a BookmarkMarkerView object
+    // Converts Bookmark object from repo into a BookmarkView object
     private fun bookmarkToBookmarkView(bookmark: Bookmark):
             MapsViewModel.BookmarkView {
         return MapsViewModel.BookmarkView(

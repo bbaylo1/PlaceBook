@@ -69,7 +69,7 @@ class BookmarkListAdapter(
             holder.categoryImageView.setImageResource(it)
         }
     }
-    // 8 getItemCount's overriden to return number of items in bookmarkData list
+    // 8 getItemCount's overridden to return number of items in bookmarkData list
     override fun getItemCount(): Int {
         return bookmarkData?.size ?: 0
     }

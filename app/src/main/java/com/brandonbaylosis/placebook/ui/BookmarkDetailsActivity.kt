@@ -34,6 +34,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
                           android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bookmark_details)
+        // Calls the built-in setSupportActionBar() to make the Toolbar act as the ActionBar for this Activity.
         setupToolbar()
         // Processes Intent data passed in from maps Activity
         getIntentData()
@@ -105,7 +106,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
     // Takes current changes from text fields and updates the bookmark
     private fun saveChanges() {
         val name = editTextName.text.toString()
-        // Doesn't doo anything if editTextName is blank
+        // Doesn't do anything if editTextName is blank
         if (name.isEmpty()) {
             return
         }

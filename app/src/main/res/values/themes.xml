@@ -14,15 +14,16 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <!-- Used to hide native action bar-->
     <style name="Theme.PlaceBook.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
-
+    <!-- Used to provide a light and dark theme respectively-->
     <style name="Theme.PlaceBook.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar"></style>
-
     <style name="Theme.PlaceBook.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"></style>
 
+    <!-- Used to define attributes for all bookmark labels-->
     <style name="BookmarkLabel">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
@@ -33,7 +34,7 @@
         <item name="android:layout_marginBottom">4dp</item>
         <item name="android:gravity">bottom</item>
     </style>
-
+    <!-- Defines the attributes for all bookmark edit fields -->
     <style name="BookmarkEditText">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_weight">0.8</item>
